@@ -1,5 +1,5 @@
 {
-    "name": "infyomlabs/generator-builder",
+    "name": "khidirdotid/generator-builder",
     "type": "library",
     "description": "InfyOm Laravel Generator GUI Builder",
     "keywords": [
@@ -15,8 +15,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Mitul Golakiya",
-            "email": "me@mitul.me"
+            "name": "Khidir Zahid",
+            "email": "khidirdotid@gmail.com"
         }
     ],
     "require": {
@@ -37,8 +37,8 @@
     },
     "funding": [
         {
-            "type": "opencollective",
-            "url": "https://opencollective.com/infyomlabs"
+            "type": "saweria",
+            "url": "https://saweria.co/khidirdotid"
         }
     ]
 }
