@@ -18,17 +18,17 @@ class GeneratorBuilderController extends Controller
 {
     public function builder()
     {
-        return view(config('infyom.generator_builder.views.builder'));
+        return view(config('generator_builder.views.builder'));
     }
 
     public function fieldTemplate()
     {
-        return view(config('infyom.generator_builder.views.field-template'));
+        return view(config('generator_builder.views.field-template'));
     }
 
     public function relationFieldTemplate()
     {
-        return view(config('infyom.generator_builder.views.relation-field-template'));
+        return view(config('generator_builder.views.relation-field-template'));
     }
 
     public function generate(BuilderGenerateRequest $request)
@@ -214,7 +214,7 @@ class GeneratorBuilderController extends Controller
 
     //    public function availableSchema()
     //    {
-    //        $schemaFolder = config('infyom.laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
+    //        $schemaFolder = config('laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
     //
     //        if (!File::exists($schemaFolder)) {
     //            return [];
@@ -235,7 +235,7 @@ class GeneratorBuilderController extends Controller
     //
     //    public function retrieveSchema($schema)
     //    {
-    //        $schemaFolder = config('infyom.laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
+    //        $schemaFolder = config('laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
     //
     //        $filePath = $schemaFolder . $schema . ".json";
     //

@@ -38,13 +38,13 @@ class GeneratorBuilderRoutesPublisherCommand extends Command
 
     private function publishRoutes()
     {
-        $path = config('infyom.laravel_generator.path.routes', app_path('Http/routes.php'));
+        $path = config('laravel_generator.path.routes', base_path('routes/web.php'));
 
         $routeContents = file_get_contents($path);
 
-        $builderRoutes = file_get_contents(__DIR__.'/../../templates/routes.stub');
+        $builderRoutes = file_get_contents(__DIR__ . '/../../templates/routes.stub');
 
-        file_put_contents($path, $routeContents."\n\n".$builderRoutes);
+        file_put_contents($path, $routeContents . "\n\n" . $builderRoutes);
 
         $this->comment("\nBuilder routes added to routes.php");
     }
@@ -54,7 +54,7 @@ class GeneratorBuilderRoutesPublisherCommand extends Command
      */
     public function publishViews()
     {
-        $sourceDir = __DIR__.'/../../views/';
+        $sourceDir = __DIR__ . '/../../views/';
         $destinationDir = base_path('resources/views/infyom/generator-builder/');
 
         if (file_exists($destinationDir)) {
