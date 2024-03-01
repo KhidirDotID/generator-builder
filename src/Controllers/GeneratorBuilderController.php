@@ -53,29 +53,33 @@ class GeneratorBuilderController extends Controller
             $data = $this->prepareRelationshipData($data);
         }
 
-        $module = Module::create([
-            'name'         => $data['modelName'],
-            'display_name' => ltrim(preg_replace('/(?<!\ )[A-Z]/', ' $0', $data['modelName'])),
-            'route'        => Str::camel(Str::plural($data['modelName'])),
-            'icon'         => 'far fa-circle',
-            'order'        => Module::where('type', 'web')->max('order') + 1,
-            'type'         => 'web'
-        ]);
-
-        $permissions = [
-            'manage-' . $module->name,
-            'create-' . $module->name,
-            'show-' . $module->name,
-            'edit-' . $module->name,
-            'delete-' . $module->name
-        ];
-
-        foreach ($permissions as $permission) {
-            Permission::create([
-                'module_id'  => $module->id,
-                'name'       => $permission,
-                'guard_name' => 'web'
+        if (class_exists(Module::class)) {
+            $module = Module::create([
+                'name'         => $data['modelName'],
+                'display_name' => ltrim(preg_replace('/(?<!\ )[A-Z]/', ' $0', $data['modelName'])),
+                'route'        => Str::camel(Str::plural($data['modelName'])),
+                'icon'         => 'far fa-circle',
+                'order'        => Module::where('type', 'web')->max('order') + 1,
+                'type'         => 'web'
             ]);
+
+            if (class_exists(Permission::class)) {
+                $permissions = [
+                    'manage-' . $module->name,
+                    'create-' . $module->name,
+                    'show-' . $module->name,
+                    'edit-' . $module->name,
+                    'delete-' . $module->name
+                ];
+
+                foreach ($permissions as $permission) {
+                    Permission::create([
+                        'module_id'  => $module->id,
+                        'name'       => $permission,
+                        'guard_name' => 'web'
+                    ]);
+                }
+            }
         }
 
         $res = Artisan::call($data['commandType'], [
@@ -100,10 +104,15 @@ class GeneratorBuilderController extends Controller
 
         Artisan::call('infyom:rollback', $input);
 
-        $module = Module::where('name', $data['modelName'])->first();
+        if (class_exists(Module::class)) {
+            $module = Module::where('name', $data['modelName'])->first();
 
-        Permission::where('module_id', $module->id)->delete();
-        $module->delete();
+            if (class_exists(Permission::class)) {
+                Permission::where('module_id', $module->id)->delete();
+            }
+
+            $module->delete();
+        }
 
         return Response::json(['message' => 'Files rollback successfully'], 200);
     }
