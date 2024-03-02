@@ -5,33 +5,34 @@ namespace InfyOm\GeneratorBuilder\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Module;
 use Artisan;
-use File;
 use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Response;
+use Illuminate\View\View;
 use InfyOm\GeneratorBuilder\Requests\BuilderGenerateRequest;
-use Request;
-use Response;
 use Spatie\Permission\Models\Permission;
 
 class GeneratorBuilderController extends Controller
 {
-    public function builder()
+    public function builder(): View
     {
         return view(config('generator_builder.views.builder'));
     }
 
-    public function fieldTemplate()
+    public function fieldTemplate(): View
     {
         return view(config('generator_builder.views.field-template'));
     }
 
-    public function relationFieldTemplate()
+    public function relationFieldTemplate(): View
     {
         return view(config('generator_builder.views.relation-field-template'));
     }
 
-    public function generate(BuilderGenerateRequest $request)
+    public function generate(BuilderGenerateRequest $request): JsonResponse
     {
         $data = $request->all();
 
@@ -87,12 +88,20 @@ class GeneratorBuilderController extends Controller
             '--jsonFromGUI' => json_encode($data),
         ]);
 
-        return Response::json('Files created successfully');
+        return Response::json([
+            'success' => true,
+            'message' => 'Files created successfully'
+        ]);
     }
 
-    public function rollback()
+    public function rollback(Request $request): JsonResponse
     {
-        $data = Request::all();
+        $data = $request->validate([
+            'modelName'   => 'required',
+            'commandType' => 'required',
+            'prefix'      => 'nullable'
+        ]);
+
         $input = [
             'model' => $data['modelName'],
             'type'  => $data['commandType'],
@@ -114,27 +123,33 @@ class GeneratorBuilderController extends Controller
             $module->delete();
         }
 
-        return Response::json(['message' => 'Files rollback successfully'], 200);
+        return Response::json([
+            'success' => true,
+            'message' => 'Files rollback successfully'
+        ]);
     }
 
-    public function generateFromFile()
+    public function generateFromFile(Request $request): JsonResponse
     {
-        $data = Request::all();
+        $data = $request->validate([
+            'modelName' => 'required',
+            'schemaFile' => 'required|file|mimes:json',
+            'commandType' => 'required'
+        ]);
 
         /** @var UploadedFile $file */
-        $file = $data['schemaFile'];
+        $file = $request->file('schemaFile');
         $filePath = $file->getRealPath();
-        $extension = $file->getClientOriginalExtension(); // getting file extension
-        if ($extension != 'json') {
-            throw new \Exception('Schema file must be Json');
-        }
 
         Artisan::call($data['commandType'], [
             'model'        => $data['modelName'],
             '--fieldsFile' => $filePath,
         ]);
 
-        return Response::json(['message' => 'Files created successfully'], 200);
+        return Response::json([
+            'success' => true,
+            'message' => 'Files created successfully'
+        ]);
     }
 
     private function validateFields($fields)
@@ -146,6 +161,7 @@ class GeneratorBuilderController extends Controller
         $duplicateFields = $fieldsGroupBy->filter(function (Collection $groups) {
             return $groups->count() > 1;
         });
+
         if (count($duplicateFields)) {
             throw new \Exception('Duplicate fields are not allowed');
         }
@@ -158,9 +174,11 @@ class GeneratorBuilderController extends Controller
         foreach ($inputData['relations'] as $inputRelation) {
             $relationType = $inputRelation['relationType'];
             $relation = $relationType;
+
             if (isset($inputRelation['foreignModel'])) {
                 $relation .= ',' . $inputRelation['foreignModel'];
             }
+
             if ($relationType == 'mtm') {
                 if (isset($inputRelation['foreignTable'])) {
                     $relation .= ',' . $inputRelation['foreignTable'];
@@ -168,9 +186,11 @@ class GeneratorBuilderController extends Controller
                     $relation .= ',';
                 }
             }
+
             if (isset($inputRelation['foreignKey'])) {
                 $relation .= ',' . $inputRelation['foreignKey'];
             }
+
             if (isset($inputRelation['localKey'])) {
                 $relation .= ',' . $inputRelation['localKey'];
             }
@@ -180,6 +200,7 @@ class GeneratorBuilderController extends Controller
                 'relation' => $relation,
             ];
         }
+
         unset($inputData['relations']);
 
         return $inputData;
@@ -188,61 +209,63 @@ class GeneratorBuilderController extends Controller
     private function prepareForeignKeyData($fields)
     {
         $updatedFields = [];
+
         foreach ($fields as $field) {
             if ($field['isForeign'] == true) {
-                if (empty($field['foreignTable'])) {
-                    throw new \Exception('Foreign table required');
-                }
                 $inputs = explode(',', $field['foreignTable']);
                 $foreignTableName = array_shift($inputs);
+
                 // prepare dbType
                 $dbType = $field['dbType'];
                 $dbType .= ':unsigned:foreign';
                 $dbType .= ',' . $foreignTableName;
+
                 if (!empty($inputs)) {
                     $dbType .= ',' . $inputs['0'];
                 } else {
                     $dbType .= ',id';
                 }
+
                 $field['dbType'] = $dbType;
             }
+
             $updatedFields[] = $field;
         }
 
         return $updatedFields;
     }
 
-    //    public function availableSchema()
-    //    {
-    //        $schemaFolder = config('laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
-    //
-    //        if (!File::exists($schemaFolder)) {
-    //            return [];
-    //        }
-    //
-    //        $files = File::allFiles($schemaFolder);
-    //
-    //        $modelNames = [];
-    //
-    //        foreach ($files as $file) {
-    //            if(File::extension($file) == "json") {
-    //                $modelNames[] = File::name($file);
-    //            }
-    //        }
-    //
-    //        return Response::json($modelNames);
-    //    }
-    //
-    //    public function retrieveSchema($schema)
-    //    {
-    //        $schemaFolder = config('laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
-    //
-    //        $filePath = $schemaFolder . $schema . ".json";
-    //
-    //        if (!File::exists($filePath)) {
-    //            return Response::json('not found', 402);
-    //        }
-    //
-    //        return Response::json(json_decode(File::get($filePath)));
-    //    }
+    // public function availableSchema()
+    // {
+    //     $schemaFolder = config('laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
+
+    //     if (!File::exists($schemaFolder)) {
+    //         return [];
+    //     }
+
+    //     $files = File::allFiles($schemaFolder);
+
+    //     $modelNames = [];
+
+    //     foreach ($files as $file) {
+    //         if (File::extension($file) == "json") {
+    //             $modelNames[] = File::name($file);
+    //         }
+    //     }
+
+    //     return Response::json($modelNames);
+    // }
+
+    // public function retrieveSchema($schema)
+    // {
+    //     $schemaFolder = config('laravel_generator.path.schema_files', base_path('resources/model_schemas/'));
+
+    //     $filePath = $schemaFolder . $schema . ".json";
+
+    //     if (!File::exists($filePath)) {
+    //         return Response::json('not found', 402);
+    //     }
+
+    //     return Response::json(json_decode(File::get($filePath)));
+    // }
 }
